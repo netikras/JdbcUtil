@@ -33,7 +33,9 @@ public class JdbcUtil {
       conn = DriverManager.getConnection(url,username,password);    
       System.err.println("Connected");
       if (_qry != null) {
-        sendQuery(conn, _qry);
+        for(String singleQuery : _qry.split(";")) {
+            sendQuery(conn, singleQuery);
+        }
       }
     } catch (Exception e) {    
       e.printStackTrace();    
@@ -78,17 +80,27 @@ public class JdbcUtil {
 
 
   private static void sendQuery(Connection connection, String qry) {
-    qry = qry.toLowerCase();
-    if (qry.startsWith("select")) {
+    String qry_low = qry.toLowerCase().trim();
+//    qry = qry.toLowerCase();
+    if (qry_low.startsWith("select")) {
         System.err.println("Sending query: ["+qry+"]");
         sendSelectQuery(connection, qry);
-    } else if(qry.startsWith("update")) {
-        if (!qry.contains("where")) {
+    } else if(qry_low.startsWith("insert")) {
+        sendInsertQuery(connection, qry);
+    } else if(qry_low.startsWith("update")) {
+        if (!qry_low.contains(" where ")) {
             System.err.println("WHERE clause is missing.");
             System.exit(4);
         }
 
         sendUpdateQuery(connection, qry);
+    } else if(qry_low.startsWith("delete")) {
+        if (!qry_low.contains(" where ")) {
+            System.err.println("WHERE clause is missing.");
+            System.exit(4);
+        }
+
+        sendDeleteQuery(connection, qry);
     } else {
         System.err.println("Unrecognized query: ["+qry+"]");
     }
@@ -144,7 +156,33 @@ public class JdbcUtil {
     
   }
 
+  private static void sendInsertQuery(Connection connection, String query) {
+    try {
+        Statement stmt = connection.createStatement();
+        int updatedCount = stmt.executeUpdate(query);
 
+        System.out.println("Inserted rows: "+updatedCount);
+    
+    } catch(Exception e) {
+        e.printStackTrace();
+        System.exit(3);
+    }
+    
+  }
+
+  private static void sendDeleteQuery(Connection connection, String query) {
+    try {
+        Statement stmt = connection.createStatement();
+        int updatedCount = stmt.executeUpdate(query);
+
+        System.out.println("Updated rows: "+updatedCount);
+    
+    } catch(Exception e) {
+        e.printStackTrace();
+        System.exit(3);
+    }
+    
+  }
 
 
     static final String USAGE = ""
