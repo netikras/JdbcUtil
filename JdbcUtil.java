@@ -175,7 +175,7 @@ public class JdbcUtil {
         Statement stmt = connection.createStatement();
         int updatedCount = stmt.executeUpdate(query);
 
-        System.out.println("Updated rows: "+updatedCount);
+        System.out.println("Deleted rows: "+updatedCount);
     
     } catch(Exception e) {
         e.printStackTrace();
