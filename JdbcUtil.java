@@ -1,8 +1,30 @@
 import java.sql.*;    
-
+import java.util.*;
 
 
 public class JdbcUtil {
+
+   static final List<String> DRIVERS;
+   static {
+        DRIVERS = new ArrayList<>();
+        DRIVERS.add("oracle.jdbc.driver.OracleDriver");
+        DRIVERS.add("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+        DRIVERS.add("com.mysql.jdbc.Driver");
+        DRIVERS.add("com.ibm.db2.jcc.DB2Driver");
+
+   }
+
+   static String findDriver() {
+        for (String driver : DRIVERS) {
+            try {
+                Class.forName(driver, false, JdbcUtil.class.getClassLoader());
+                System.out.println("Loaded JDBC driver: [" + driver + "]");
+                return driver;
+            } catch (Exception e) {}
+        }
+        return null;
+   }
+
   //private final static String DB_URL = "jdbc:oracle:thin:@localhost:1521:mydatabase";
   //private final static String USER = "UsernAme";
   //private final static String PASS = "password123";
@@ -27,14 +49,19 @@ public class JdbcUtil {
 
     
     try {    
-      Class.forName("oracle.jdbc.driver.OracleDriver");    
+      String driverName = findDriver();
+      if (driverName == null) {
+        System.err.println("Cannot find any known JDBC driver in the classpath.");
+        System.exit(1);
+      }
+      Class.forName(driverName);    
       System.err.println("Connecting to database: "+url + " using credentials: "+username+":"+"******"+"...");    
       //conn = DriverManager.getConnection(DB_URL,USER,PASS);    
       conn = DriverManager.getConnection(url,username,password);    
       System.err.println("Connected");
       if (_qry != null) {
         for(String singleQuery : _qry.split(";")) {
-            sendQuery(conn, singleQuery);
+            sendQuery(conn, singleQuery.trim());
         }
       }
     } catch (Exception e) {    
@@ -80,7 +107,7 @@ public class JdbcUtil {
 
 
   private static void sendQuery(Connection connection, String qry) {
-    String qry_low = qry.toLowerCase().trim();
+    String qry_low = qry.toLowerCase();
 //    qry = qry.toLowerCase();
     if (qry_low.startsWith("select")) {
         System.err.println("Sending query: ["+qry+"]");
