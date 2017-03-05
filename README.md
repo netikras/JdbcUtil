@@ -1,6 +1,6 @@
 
 
-Created this tiny util when I needed to test some ORA drivers and how they behave in my infra. Added a few bells and whistles since then. Still it is a very simple though sometimes very useful util.
+Created this tiny util when I needed to test some ORA drivers and see how they behave in my infra. Added a few bells and whistles since then. Still it is a very simple though sometimes very useful util.
 
 
 EXAMPLE:
