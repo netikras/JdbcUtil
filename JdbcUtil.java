@@ -11,18 +11,27 @@ public class JdbcUtil {
         DRIVERS.add("com.microsoft.sqlserver.jdbc.SQLServerDriver");
         DRIVERS.add("com.mysql.jdbc.Driver");
         DRIVERS.add("com.ibm.db2.jcc.DB2Driver");
+        DRIVERS.add("org.h2.Driver");
 
    }
 
    static String findDriver() {
+
         for (String driver : DRIVERS) {
             try {
+                System.err.println("Trying driver: " + driver);
                 Class.forName(driver, false, JdbcUtil.class.getClassLoader());
-                System.out.println("Loaded JDBC driver: [" + driver + "]");
+                System.err.println("Loaded JDBC driver: [" + driver + "]");
                 return driver;
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            }
         }
         return null;
+   }
+
+   static void addDriver(String driverClassName) {
+       System.err.println("Adding driver to the list: " + driverClassName);
+        DRIVERS.add(driverClassName);
    }
 
   //private final static String DB_URL = "jdbc:oracle:thin:@localhost:1521:mydatabase";
@@ -90,11 +99,12 @@ public class JdbcUtil {
         String arg = params[i];
 
 		/* java6 is unable to switch strings */
-        if ("-u".equals(arg)) {username = params[++i];} else
-        if ("-p".equals(arg)) {password = params[++i];} else
-        if ("-U".equals(arg)) {url      = params[++i];} else
-        if ("-q".equals(arg)) {_qry     = params[++i];} else
-        if ("-d".equals(arg)) {_delim   = params[++i];} else
+        if ("-u" .equals(arg)) {username = params[++i];} else
+        if ("-p" .equals(arg)) {password = params[++i];} else
+        if ("-U" .equals(arg)) {url      = params[++i];} else
+        if ("-q" .equals(arg)) {_qry     = params[++i];} else
+        if ("-d" .equals(arg)) {_delim   = params[++i];} else
+        if ("-dr".equals(arg)) {addDriver(params[++i]);} else
         {
             System.err.println("Unknown argument: "+arg);
             System.out.println(USAGE);
@@ -114,6 +124,8 @@ public class JdbcUtil {
         sendSelectQuery(connection, qry);
     } else if(qry_low.startsWith("insert")) {
         sendInsertQuery(connection, qry);
+    } else if(qry_low.startsWith("show")) {
+        sendSelectQuery(connection, qry);
     } else if(qry_low.startsWith("update")) {
         if (!qry_low.contains(" where ")) {
             System.err.println("WHERE clause is missing.");
@@ -214,11 +226,12 @@ public class JdbcUtil {
 
     static final String USAGE = ""
         + "USAGE:\n"
-        + "  * -u <username>\n"
-        + "  * -p <password>\n"
-        + "  * -U <url>       : e.g.: localhost:1521:mydatabase; jdbc:oracle:thin:@localhost:1521:mydatabase \n"
-        + "    -q <query>\n"
-        + "    -d <delimiter> : delimiter to separate columns in SELECT output\n"
+        + "  * -u  <username>\n"
+        + "  * -p  <password>\n"
+        + "  * -U  <url>       : e.g.: localhost:1521:mydatabase; jdbc:oracle:thin:@localhost:1521:mydatabase \n"
+        + "    -q  <query>\n"
+        + "    -d  <delimiter> : delimiter to separate columns in SELECT output\n"
+        + "    -dr <driver>    : custom driver class name, e.g.: -dr 'org.h2.Driver'\n"
         ;
 
 
