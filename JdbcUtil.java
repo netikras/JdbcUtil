@@ -1,6 +1,7 @@
 import java.sql.*;
 import java.util.*;
 import java.io.*;
+import java.lang.*;
 
 public class JdbcUtil {
 
@@ -49,6 +50,10 @@ public class JdbcUtil {
     private static String _qry = null;
     private static String _qryFile = null;
     private static String _delim = "|";
+
+    private static long pagesize = -1;
+    private static long pageStart = 0;
+    private static long pageEnd = 0;
 
     private static Connection conn = null;
 
@@ -104,21 +109,79 @@ public class JdbcUtil {
 
         /* java6 is unable to switch strings */
             // @formatter:off
-            if ("-u".equals(arg))   { username = params[++i]; } else
-            if ("-p".equals(arg))   { password = params[++i]; } else
-            if ("-U".equals(arg))   { url      = params[++i]; } else
-            if ("-q".equals(arg))   { _qry     = params[++i]; } else
-            if ("-d".equals(arg))   { _delim   = params[++i]; } else
-            if ("-dr".equals(arg))  { addDriver(params[++i]); } else
-            if ("-if".equals(arg))  { _qryFile = params[++i]; } else
+            if ("-u".equals(arg))   { username = params[++i];  } else
+            if ("-p".equals(arg))   { password = params[++i];  } else
+            if ("-U".equals(arg))   { url      = params[++i];  } else
+            if ("-q".equals(arg))   { _qry     = params[++i];  } else
+            if ("-d".equals(arg))   { _delim   = params[++i];  } else
+            if ("-dr".equals(arg))  { addDriver(params[++i]);  } else
+            if ("-if".equals(arg))  { _qryFile = params[++i];  } else
+            if ("-pg".equals(arg))  { parsePages(params[++i]); } else
             {
                 System.err.println("Unknown argument: " + arg);
-                System.out.println(USAGE);
+                System.err.println(USAGE);
                 System.exit(1);
             }
             // @formatter:on
         }
 
+    }
+
+    private static void parsePages(String expr) {
+        if (expr == null || expr.isEmpty()) {
+            return;
+        }
+
+        String pagesizeStr = "0";
+        String pageStartStr = "1";
+        String pageEndStr = "1";
+
+        long _pagesize = 0;
+        long _pageStart = 0;
+        long _pageEnd = 0;
+
+        String[] tokens = expr.split(":");
+        if (tokens != null && tokens.length > 0) {
+            if (tokens.length > 1) {
+                pagesizeStr = tokens[1];
+                if (pagesizeStr != null && !pagesizeStr.isEmpty()) {
+                    _pagesize = Long.parseLong(pagesizeStr);
+                }
+            }
+
+            tokens = tokens[0].split("-");
+            if (tokens != null && tokens.length > 0) {
+                pageStartStr = tokens[0];
+                pageEndStr = pageStartStr;
+                if (tokens.length > 1) {
+                    pageEndStr = tokens[1];
+                }
+
+
+                if (pageStartStr != null && ! pageStartStr.isEmpty()) {
+                    _pageStart = Long.parseLong(pageStartStr);
+                } else {
+                    _pageStart = 0;
+                }
+
+                if (pageEndStr != null && ! pageEndStr.isEmpty()) {
+                    _pageEnd = Long.parseLong(pageEndStr);
+                } else {
+                    _pageEnd = pageStart;
+                }
+
+            }
+        }
+
+        if (_pageStart > _pageEnd) {
+            throw new IllegalStateException("Starting page number cannot be lower than ending page");
+        }
+
+        System.err.println(String.format("Start page: %s, end page: %s, page size: %s", _pageStart, _pageEnd, _pagesize));
+
+        pagesize = _pagesize;
+        pageStart = _pageStart;
+        pageEnd = _pageEnd;
     }
 
     private static String readQuery() {
@@ -212,6 +275,9 @@ public class JdbcUtil {
             int rownum = 0;
             String data;
 
+            long currentPage = 0;
+            long currentPageRow = -1;
+
             System.out.print("Row#");
             for (int i = 1; i <= colsCnt; i++) {
                 System.out.print(_delim + meta.getColumnName(i));
@@ -219,14 +285,31 @@ public class JdbcUtil {
             System.out.println();
 
             while (rs.next()) {
-                System.out.print(++rownum);
+                rownum++;
+                currentPageRow++;
+                if (currentPageRow == pagesize) {
+                    currentPage++;
+                    currentPageRow = 0;
+                    if (currentPage >= pageStart && currentPage <= pageEnd) {
+                        System.err.println("Page #"+currentPage);
+                    }
+                }
+                if (currentPage >= pageStart) {
+                    if (currentPage > pageEnd) {
+                        System.err.println("End of last page: #"+pageEnd);
+                        break;
+                    }
+                } else {
+                    continue;
+                }
+
+                System.out.print(rownum);
 
                 for (int i = 1; i <= colsCnt; i++) {
                     System.out.print(_delim + rs.getObject(i));
                 }
 
                 System.out.println();
-
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -299,6 +382,7 @@ public class JdbcUtil {
             + "    -q   <query>\n"
             + "    -d   <delimiter> : delimiter to separate columns in SELECT output\n"
             + "    -dr  <driver>    : custom driver class name, e.g.: -dr 'org.h2.Driver'\n"
+            + "    -pg  <page>      : pages to select. e.g. 3-4:20 will print pages 3 and 4 of size 20. 3:20 will only print pg #3\n"
             + "    -if  <file>      : query input file. Either 'file:///some/path/to/file.sql' or '--' for stdin\n";
 
 }
