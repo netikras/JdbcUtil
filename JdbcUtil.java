@@ -51,6 +51,8 @@ public class JdbcUtil {
     private static String _qryFile = null;
     private static String _delim = "|";
 
+    private static boolean printBlob = false;
+
     private static long pagesize = -1;
     private static long pageStart = 0;
     private static long pageEnd = 0;
@@ -117,6 +119,7 @@ public class JdbcUtil {
             if ("-dr".equals(arg))  { addDriver(params[++i]);  } else
             if ("-if".equals(arg))  { _qryFile = params[++i];  } else
             if ("-pg".equals(arg))  { parsePages(params[++i]); } else
+            if ("-o".equals(arg))   { parseOpt(params[++i]); } else
             {
                 System.err.println("Unknown argument: " + arg);
                 System.err.println(USAGE);
@@ -125,6 +128,14 @@ public class JdbcUtil {
             // @formatter:on
         }
 
+    }
+
+    private static void parseOpt(String option) {
+        if (option == null || option.isEmpty()) return;
+
+        if ("blob".equals(option)) {
+            printBlob = true;
+        }
     }
 
     private static void parsePages(String expr) {
@@ -306,7 +317,24 @@ public class JdbcUtil {
                 System.out.print(rownum);
 
                 for (int i = 1; i <= colsCnt; i++) {
-                    System.out.print(_delim + rs.getObject(i));
+                    Object value = rs.getObject(i);
+                    if (value == null) {
+                        System.out.println(_delim + "(null)");
+                    } else if (java.sql.Blob.class.isAssignableFrom(value.getClass())) {
+                        if (printBlob) {
+                            try {
+                                java.sql.Blob blob = (java.sql.Blob) value;
+                                System.out.println(_delim + encodeBase64(blob.getBytes(1, (int)blob.length())));
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                System.out.println(_delim + "(!blob)");
+                            }
+                        } else {
+                            System.out.println(_delim + "(blob)");
+                        }
+                    } else {
+                        System.out.print(_delim + rs.getObject(i));
+                    }
                 }
 
                 System.out.println();
@@ -374,6 +402,11 @@ public class JdbcUtil {
         }
     }
 
+    private static String encodeBase64(byte[] data) {
+        sun.misc.BASE64Encoder encoder = new sun.misc.BASE64Encoder();
+        return encoder.encode(data);
+    }
+
     static final String USAGE = ""
             + "USAGE:\n"
             + "  * -u   <username>\n"
@@ -383,6 +416,8 @@ public class JdbcUtil {
             + "    -d   <delimiter> : delimiter to separate columns in SELECT output\n"
             + "    -dr  <driver>    : custom driver class name, e.g.: -dr 'org.h2.Driver'\n"
             + "    -pg  <page>      : pages to select. e.g. 3-4:20 will print pages 3 and 4 of size 20. 3:20 will only print pg #3\n"
-            + "    -if  <file>      : query input file. Either 'file:///some/path/to/file.sql' or '--' for stdin\n";
+            + "    -if  <file>      : query input file. Either 'file:///some/path/to/file.sql' or '--' for stdin\n"
+            + "    -o   <option>    : provide additional options. See docs for more info"
+            + "\n";
 
 }
