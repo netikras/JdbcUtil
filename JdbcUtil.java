@@ -319,7 +319,7 @@ public class JdbcUtil {
                 for (int i = 1; i <= colsCnt; i++) {
                     Object value = rs.getObject(i);
                     if (value == null) {
-                        System.out.println(_delim + "(null)");
+                        System.out.print(_delim + "(null)");
                     } else if (java.sql.Blob.class.isAssignableFrom(value.getClass())) {
                         if (printBlob) {
                             try {
@@ -327,10 +327,10 @@ public class JdbcUtil {
                                 System.out.println(_delim + encodeBase64(blob.getBytes(1, (int)blob.length())));
                             } catch (Exception e) {
                                 e.printStackTrace();
-                                System.out.println(_delim + "(!blob)");
+                                System.out.print(_delim + "(!blob)");
                             }
                         } else {
-                            System.out.println(_delim + "(blob)");
+                            System.out.print(_delim + "(blob)");
                         }
                     } else {
                         System.out.print(_delim + rs.getObject(i));
