@@ -52,6 +52,9 @@ public class JdbcUtil {
     private static String _delim = "|";
 
     private static boolean printBlob = false;
+    private static boolean hidenull = false;
+    private static boolean norownum = false;
+    private static boolean noheader = false;
 
     private static long pagesize = -1;
     private static long pageStart = 0;
@@ -135,7 +138,14 @@ public class JdbcUtil {
 
         if ("blob".equals(option)) {
             printBlob = true;
+        } else if ("nonull".equals(option)) {
+            hidenull = true;
+        } else if ("norownum".equals(option)) {
+            norownum = true;
+        } else if ("noheader".equals(option)) {
+            noheader = true;
         }
+
     }
 
     private static void parsePages(String expr) {
@@ -289,11 +299,19 @@ public class JdbcUtil {
             long currentPage = 0;
             long currentPageRow = -1;
 
-            System.out.print("Row#");
-            for (int i = 1; i <= colsCnt; i++) {
-                System.out.print(_delim + meta.getColumnName(i));
+            if (noheader == false) {
+                System.out.print("Row#");
+                for (int i = 1; i <= colsCnt; i++) {
+                    System.out.print(_delim + meta.getColumnName(i));
+                }
+                System.out.println();
             }
-            System.out.println();
+
+            String nulltext = "(null)";
+            String delim = "";
+            if (hidenull) {
+                nulltext = "";
+            }
 
             while (rs.next()) {
                 rownum++;
@@ -314,27 +332,33 @@ public class JdbcUtil {
                     continue;
                 }
 
-                System.out.print(rownum);
+                delim = "";
+                if (norownum == false) {
+                    System.out.print(rownum);
+                    delim = _delim;
+                }
 
                 for (int i = 1; i <= colsCnt; i++) {
                     Object value = rs.getObject(i);
                     if (value == null) {
-                        System.out.print(_delim + "(null)");
+                        System.out.print(delim + nulltext);
                     } else if (java.sql.Blob.class.isAssignableFrom(value.getClass())) {
                         if (printBlob) {
                             try {
                                 java.sql.Blob blob = (java.sql.Blob) value;
-                                System.out.println(_delim + encodeBase64(blob.getBytes(1, (int)blob.length())));
+                                System.out.println(delim + encodeBase64(blob.getBytes(1, (int)blob.length())));
                             } catch (Exception e) {
                                 e.printStackTrace();
-                                System.out.print(_delim + "(!blob)");
+                                System.out.print(delim + "(!blob)");
                             }
                         } else {
-                            System.out.print(_delim + "(blob)");
+                            System.out.print(delim + "(blob)");
                         }
                     } else {
-                        System.out.print(_delim + rs.getObject(i));
+                        System.out.print(delim + rs.getObject(i));
                     }
+
+                    delim = _delim;
                 }
 
                 System.out.println();

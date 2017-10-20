@@ -27,3 +27,15 @@ EXAMPLE:
     netikras@netikras-xps /tmp/playground/JdbcUtil $ 
 
 
+
+OPTONS
+
+options are passed with `-o` parameter as flags. Currently available options:
+
+ - nonull - select queries print text '(null)' where value is _null_ by default. If this flag is set nothing is printed instead
+
+ - blob - select queries print text '(blob)' where return value is lob. If this flag is set base64 encoded blobs are printed instead
+
+ - norownum - if flag is set rownum values will not be printed at the beginning of each result line
+
+ - noheader - if flag is set output will not contain column names at the top of result set
